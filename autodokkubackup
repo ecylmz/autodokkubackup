@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# Inspired by automysqlbackup v2.5
+
+set -euo pipefail; [[ -z ${TRACE:-} ]] || set -x
+
+die() {
+	echo >&2 "$@"
+	exit 1
+}
+
+[[ "$(whoami)" == "dokku" ]] || die "Script must be run as dokku!"
+
+pushd () {
+    command pushd "$@" > /dev/null
+}
+
+popd () {
+    command popd > /dev/null
+}
+
+BACKUP_DIR="/mnt/volume/backups/db"
+
+DOWEEKLY=7							# Which day do you want weekly backups? (1 to 7 where 1 is Monday)
+DOMONTHLY=01							# Which day do you want monthly backups?
+DATE=$(date +%Y-%m-%d_%Hh%Mm)					# Datestamp e.g 2002-09-21
+DOW=$(date +%A)							# Day of the week e.g. Monday
+DNOW=$(date +%u)						# Day number of the week 1 to 7 where 1 represents Monday
+DOM=$(date +%d)							# Date of the Month e.g. 27
+M=$(date +%B)							# Month e.g January
+W=$(date +%V)
+
+postgres_databases=$(dokku postgres:list | awk 'NR > 1 {print $1}')
+mariadb_databases=$(dokku mariadb:list | awk 'NR > 1 {print $1}')
+
+backup() {
+	rotate=$1
+	pushd "$BACKUP_DIR"/postgres/"$rotate"
+	for db in $postgres_databases; do
+		mkdir -p "$db"; pushd "$db"
+
+		case $rotate in
+		"monthly")
+			dokku postgres:export "$db" > "$db"_"$rotate"."$M"."$DATE".dump
+			gzip -f "$db"_"$rotate"."$M"."$DATE".dump
+			;;
+		"weekly")
+			if [ "$W" -le 05 ]; then
+				REMW=$((48 + "$W"))
+			elif [ "$W" -lt 15 ]; then
+				REMW=0$(("$W" - 5))
+			else
+				REMW=$(("$W" - 5))
+			fi
+			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
+			dokku postgres:export "$db" > "$db"_"$rotate"."$W"."$DATE".dump
+			gzip -f "$db"_"$rotate"."$W"."$DATE".dump
+			;;
+		"daily")
+			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/*."$DOW".dump.*
+			dokku postgres:export "$db" > "$db"_"$DATE"."$DOW".dump
+			gzip -f "$db"_"$DATE"."$DOW".dump
+			;;
+		esac
+		popd
+	done
+
+	pushd "$BACKUP_DIR"/mariadb/"$rotate"
+	for db in $mariadb_databases; do
+		mkdir -p "$db"; pushd "$db"
+		case $rotate in
+		"monthly")
+			dokku mariadb:export "$db" > "$db"_"$rotate"."$M"."$DATE".sql
+			gzip -f "$db"_"$rotate"."$M"."$DATE".sql
+			;;
+		"weekly")
+			if [ "$W" -le 05 ];then
+				REMW=$((48 + "$W"))
+			elif [ "$W" -lt 15 ];then
+				REMW=0$(("$W" - 5))
+			else
+				REMW=$(("$W" - 5))
+			fi
+			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
+			dokku mariadb:export "$db" > "$db"_"$rotate"."$W"."$DATE".sql
+			gzip -f "$db"_"$rotate"."$W"."$DATE".sql
+			;;
+		"daily")
+			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/*."$DOW".sql.*
+			dokku mariadb:export "$db" > "$db"_"$DATE"."$DOW".sql
+			gzip -f "$db"_"$DATE"."$DOW".sql
+			;;
+		esac
+		popd
+	done
+}
+
+main() {
+	mkdir -p $BACKUP_DIR/postgres/{daily,weekly,monthly} $BACKUP_DIR/mariadb/{daily,weekly,monthly}
+
+	# Monthly Backup
+	if [ "$DOM" = "$DOMONTHLY" ]; then
+		backup "monthly"
+	# Weekly Backup
+	elif [ "$DNOW" = "$DOWEEKLY" ]; then
+		backup "weekly"
+	# Daily Backup
+	else
+		backup "daily"
+	fi
+}
+
+main "$@"
