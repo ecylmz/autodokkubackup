@@ -12,4 +12,4 @@ License
 -------
 
 The GNU General Public License Version 3 (GPLv3) - see
-[`LICENSE.md`](LICENSE.md) for more details
+[`LICENSE`](LICENSE) for more details
