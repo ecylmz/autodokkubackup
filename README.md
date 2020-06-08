@@ -1,5 +1,15 @@
-# AutoDokkuBackup
+AutoDokkuBackup
+===============
 
-It provides backups of postgresql and mariadb databases on the Dokku server, just like the "automysqlbackup" tool, on a daily, weekly and monthly basis.
+AutoDokkuBackup, whose name is inspired by `automysqlbackup`, is a simple tool
+for Dokku that allows you to automatically take daily, weekly and monthly
+backups of MariaDB and PostgreSQL databases.
 
-Inspired by the "AutoMySQLBackup".
+Note that it is still in beta. Therefore, you should be careful when using it
+in production.
+
+License
+-------
+
+The GNU General Public License Version 3 (GPLv3) - see
+[`LICENSE`](LICENSE) for more details
