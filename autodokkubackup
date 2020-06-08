@@ -19,6 +19,10 @@ popd () {
     command popd > /dev/null
 }
 
+has_plugin () {
+	dokku plugin:installed "$1"
+}
+
 BACKUP_DIR="/mnt/volume/backups/db"
 
 DOWEEKLY=7							# Which day do you want weekly backups? (1 to 7 where 1 is Monday)
@@ -96,6 +100,9 @@ backup() {
 }
 
 main() {
+	has_plugin postgres || die "postgres not installed."
+	has_plugin mariadb  || die "mariadb not installed."
+
 	mkdir -p $BACKUP_DIR/postgres/{daily,weekly,monthly} $BACKUP_DIR/mariadb/{daily,weekly,monthly}
 
 	# Monthly Backup
