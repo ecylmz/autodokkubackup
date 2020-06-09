@@ -19,6 +19,11 @@ popd () {
     command popd > /dev/null
 }
 
+# Older dokku versions doesn't have "plugin:installed" command
+has_plugin() {
+	grep -q "$1" <<< "$plugin_list"
+}
+
 BACKUP_DIR="/mnt/volume/backups/db"
 
 DOWEEKLY=7							# Which day do you want weekly backups? (1 to 7 where 1 is Monday)
@@ -30,11 +35,10 @@ DOM=$(date +%d)							# Date of the Month e.g. 27
 M=$(date +%B)							# Month e.g January
 W=$(date +%V)
 
-postgres_databases=$(dokku postgres:list | awk 'NR > 1 {print $1}')
-mariadb_databases=$(dokku mariadb:list | awk 'NR > 1 {print $1}')
-
-backup() {
+postgres_backup() {
 	rotate=$1
+	postgres_databases=$(dokku postgres:list | awk 'NR > 1 {print $1}')
+
 	pushd "$BACKUP_DIR"/postgres/"$rotate"
 	for db in $postgres_databases; do
 		mkdir -p "$db"; pushd "$db"
@@ -64,6 +68,11 @@ backup() {
 		esac
 		popd
 	done
+}
+
+mariadb_backup() {
+	rotate=$1
+	mariadb_databases=$(dokku mariadb:list | awk 'NR > 1 {print $1}')
 
 	pushd "$BACKUP_DIR"/mariadb/"$rotate"
 	for db in $mariadb_databases; do
@@ -95,8 +104,20 @@ backup() {
 	done
 }
 
+backup() {
+	if has_plugin "postgres"; then
+		mkdir -p $BACKUP_DIR/postgres/{daily,weekly,monthly}
+		postgres_backup "$1"
+	fi
+
+	if has_plugin "mariadb"; then
+		$BACKUP_DIR/mariadb/{daily,weekly,monthly}
+		mariadb_backup "$1"
+	fi
+}
+
 main() {
-	mkdir -p $BACKUP_DIR/postgres/{daily,weekly,monthly} $BACKUP_DIR/mariadb/{daily,weekly,monthly}
+	plugin_list=$(dokku plugin:list)
 
 	# Monthly Backup
 	if [ "$DOM" = "$DOMONTHLY" ]; then
