@@ -54,12 +54,12 @@ postgres_backup() {
 			else
 				REMW=$(("$date_weekno" - 5))
 			fi
-			rm -fv "$backup_dir"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
+			rm -fv "$backup_dir"/postgres/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
 			dokku postgres:export "$db" > "$db"_"$rotate"."$date_weekno"."$datetimestamp".dump
 			gzip -f "$db"_"$rotate"."$date_weekno"."$datetimestamp".dump
 			;;
 		"daily")
-			rm -fv "$backup_dir"/"$rotate"/"$db"/*."$date_day_of_week".dump.*
+			rm -fv "$backup_dir"/postgres/"$rotate"/"$db"/*."$date_day_of_week".dump.*
 			dokku postgres:export "$db" > "$db"_"$datetimestamp"."$date_day_of_week".dump
 			gzip -f "$db"_"$datetimestamp"."$date_day_of_week".dump
 			;;
@@ -88,12 +88,12 @@ mariadb_backup() {
 			else
 				REMW=$(("$date_weekno" - 5))
 			fi
-			rm -fv "$backup_dir"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
+			rm -fv "$backup_dir"/mariadb/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
 			dokku mariadb:export "$db" > "$db"_"$rotate"."$date_weekno"."$datetimestamp".sql
 			gzip -f "$db"_"$rotate"."$date_weekno"."$datetimestamp".sql
 			;;
 		"daily")
-			rm -fv "$backup_dir"/"$rotate"/"$db"/*."$date_day_of_week".sql.*
+			rm -fv "$backup_dir"/mariadb/"$rotate"/"$db"/*."$date_day_of_week".sql.*
 			dokku mariadb:export "$db" > "$db"_"$datetimestamp"."$date_day_of_week".sql
 			gzip -f "$db"_"$datetimestamp"."$date_day_of_week".sql
 			;;
