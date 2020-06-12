@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Inspired by automysqlbackup v2.5
-
 set -euo pipefail; [[ -z ${TRACE:-} ]] || set -x
 
 die() {
@@ -11,11 +9,11 @@ die() {
 
 [[ "$(whoami)" == "dokku" ]] || die "Script must be run as dokku!"
 
-pushd () {
+pushd() {
     command pushd "$@" > /dev/null
 }
 
-popd () {
+popd() {
     command popd > /dev/null
 }
 
@@ -24,7 +22,7 @@ has_plugin() {
 	grep -q "$1" <<< "$plugin_list"
 }
 
-BACKUP_DIR="/mnt/volume/backups/db"
+backup_dir="/mnt/volume/backups/db"
 
 do_weekly=7								# Which day do you want weekly backups? (1 to 7 where 1 is Monday)
 do_monthly=01							# Which day do you want monthly backups?
@@ -39,7 +37,7 @@ postgres_backup() {
 	rotate=$1
 	postgres_databases=$(dokku postgres:list | awk 'NR > 1 {print $1}')
 
-	pushd "$BACKUP_DIR"/postgres/"$rotate"
+	pushd "$backup_dir"/postgres/"$rotate"
 	for db in $postgres_databases; do
 		mkdir -p "$db"; pushd "$db"
 
@@ -56,12 +54,12 @@ postgres_backup() {
 			else
 				REMW=$(("$date_weekno" - 5))
 			fi
-			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
+			rm -fv "$backup_dir"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
 			dokku postgres:export "$db" > "$db"_"$rotate"."$date_weekno"."$datetimestamp".dump
 			gzip -f "$db"_"$rotate"."$date_weekno"."$datetimestamp".dump
 			;;
 		"daily")
-			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/*."$date_day_of_week".dump.*
+			rm -fv "$backup_dir"/"$rotate"/"$db"/*."$date_day_of_week".dump.*
 			dokku postgres:export "$db" > "$db"_"$datetimestamp"."$date_day_of_week".dump
 			gzip -f "$db"_"$datetimestamp"."$date_day_of_week".dump
 			;;
@@ -74,7 +72,7 @@ mariadb_backup() {
 	rotate=$1
 	mariadb_databases=$(dokku mariadb:list | awk 'NR > 1 {print $1}')
 
-	pushd "$BACKUP_DIR"/mariadb/"$rotate"
+	pushd "$backup_dir"/mariadb/"$rotate"
 	for db in $mariadb_databases; do
 		mkdir -p "$db"; pushd "$db"
 		case $rotate in
@@ -90,12 +88,12 @@ mariadb_backup() {
 			else
 				REMW=$(("$date_weekno" - 5))
 			fi
-			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
+			rm -fv "$backup_dir"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
 			dokku mariadb:export "$db" > "$db"_"$rotate"."$date_weekno"."$datetimestamp".sql
 			gzip -f "$db"_"$rotate"."$date_weekno"."$datetimestamp".sql
 			;;
 		"daily")
-			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/*."$date_day_of_week".sql.*
+			rm -fv "$backup_dir"/"$rotate"/"$db"/*."$date_day_of_week".sql.*
 			dokku mariadb:export "$db" > "$db"_"$datetimestamp"."$date_day_of_week".sql
 			gzip -f "$db"_"$datetimestamp"."$date_day_of_week".sql
 			;;
@@ -106,12 +104,12 @@ mariadb_backup() {
 
 backup() {
 	if has_plugin "postgres"; then
-		mkdir -p $BACKUP_DIR/postgres/{daily,weekly,monthly}
+		mkdir -p $backup_dir/postgres/{daily,weekly,monthly}
 		postgres_backup "$1"
 	fi
 
 	if has_plugin "mariadb"; then
-		$BACKUP_DIR/mariadb/{daily,weekly,monthly}
+		$backup_dir/mariadb/{daily,weekly,monthly}
 		mariadb_backup "$1"
 	fi
 }
