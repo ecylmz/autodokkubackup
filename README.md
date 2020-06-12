@@ -8,6 +8,14 @@ backups of MariaDB and PostgreSQL databases.
 Note that it is still in beta. Therefore, you should be careful when using it
 in production.
 
+Installation
+------------
+
+```sh
+sudo curl -L https://raw.githubusercontent.com/ecylmz/autodokkubackup/master/autodokkubackup -o /usr/local/bin/autodokkubackup
+sudo chmod +x /usr/local/bin/autodokkubackup
+```
+
 License
 -------
 
