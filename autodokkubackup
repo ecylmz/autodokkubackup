@@ -22,7 +22,7 @@ has_plugin() {
 	grep -q "$1" <<< "$plugin_list"
 }
 
-backup_dir="/mnt/volume/backups/db"
+backup_dir="/var/lib/dokku/data/autodokkubackup"
 
 do_weekly=7											# Which day do you want weekly backups? (1 to 7 where 1 is Monday)
 do_monthly=01										# Which day do you want monthly backups?
