@@ -26,14 +26,14 @@ has_plugin() {
 
 BACKUP_DIR="/mnt/volume/backups/db"
 
-DOWEEKLY=7							# Which day do you want weekly backups? (1 to 7 where 1 is Monday)
-DOMONTHLY=01							# Which day do you want monthly backups?
-DATE=$(date +%Y-%m-%d_%Hh%Mm)					# Datestamp e.g 2002-09-21
-DOW=$(date +%A)							# Day of the week e.g. Monday
-DNOW=$(date +%u)						# Day number of the week 1 to 7 where 1 represents Monday
-DOM=$(date +%d)							# Date of the Month e.g. 27
-M=$(date +%B)							# Month e.g January
-W=$(date +%V)
+do_weekly=7								# Which day do you want weekly backups? (1 to 7 where 1 is Monday)
+do_monthly=01							# Which day do you want monthly backups?
+datetimestamp=$(date +%Y-%m-%d_%Hh%Mm)			# Datestamp e.g 2002-09-21
+date_day_of_week=$(date +%A)							# Day of the week e.g. Monday
+date_dayno_of_week=$(date +%u)						# Day number of the week 1 to 7 where 1 represents Monday
+date_day_of_month=$(date +%e | sed -e 's/^ //')		# Date of the Month e.g. 27
+date_month=$(date +%B)							# Month e.g January
+date_weekno=$(date +%V | sed -e 's/^0//')	# Week Number e.g 37
 
 postgres_backup() {
 	rotate=$1
@@ -45,25 +45,25 @@ postgres_backup() {
 
 		case $rotate in
 		"monthly")
-			dokku postgres:export "$db" > "$db"_"$rotate"."$M"."$DATE".dump
-			gzip -f "$db"_"$rotate"."$M"."$DATE".dump
+			dokku postgres:export "$db" > "$db"_"$rotate"."$date_month"."$datetimestamp".dump
+			gzip -f "$db"_"$rotate"."$M"."$datetimestamp".dump
 			;;
 		"weekly")
-			if [ "$W" -le 05 ]; then
-				REMW=$((48 + "$W"))
-			elif [ "$W" -lt 15 ]; then
-				REMW=0$(("$W" - 5))
+			if [ "$date_weekno" -le 05 ]; then
+				REMW=$((48 + "$date_weekno"))
+			elif [ "$date_weekno" -lt 15 ]; then
+				REMW=0$(("$date_weekno" - 5))
 			else
-				REMW=$(("$W" - 5))
+				REMW=$(("$date_weekno" - 5))
 			fi
 			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
-			dokku postgres:export "$db" > "$db"_"$rotate"."$W"."$DATE".dump
-			gzip -f "$db"_"$rotate"."$W"."$DATE".dump
+			dokku postgres:export "$db" > "$db"_"$rotate"."$date_weekno"."$datetimestamp".dump
+			gzip -f "$db"_"$rotate"."$date_weekno"."$datetimestamp".dump
 			;;
 		"daily")
-			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/*."$DOW".dump.*
-			dokku postgres:export "$db" > "$db"_"$DATE"."$DOW".dump
-			gzip -f "$db"_"$DATE"."$DOW".dump
+			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/*."$date_day_of_week".dump.*
+			dokku postgres:export "$db" > "$db"_"$datetimestamp"."$date_day_of_week".dump
+			gzip -f "$db"_"$datetimestamp"."$date_day_of_week".dump
 			;;
 		esac
 		popd
@@ -79,25 +79,25 @@ mariadb_backup() {
 		mkdir -p "$db"; pushd "$db"
 		case $rotate in
 		"monthly")
-			dokku mariadb:export "$db" > "$db"_"$rotate"."$M"."$DATE".sql
-			gzip -f "$db"_"$rotate"."$M"."$DATE".sql
+			dokku mariadb:export "$db" > "$db"_"$rotate"."$date_month"."$datetimestamp".sql
+			gzip -f "$db"_"$rotate"."$date_month"."$datetimestamp".sql
 			;;
 		"weekly")
-			if [ "$W" -le 05 ];then
-				REMW=$((48 + "$W"))
-			elif [ "$W" -lt 15 ];then
-				REMW=0$(("$W" - 5))
+			if [ "$date_weekno" -le 05 ];then
+				REMW=$((48 + "$date_weekno"))
+			elif [ "$date_weekno" -lt 15 ];then
+				REMW=0$(("$date_weekno" - 5))
 			else
-				REMW=$(("$W" - 5))
+				REMW=$(("$date_weekno" - 5))
 			fi
 			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/"$db"_"$rotate"."$REMW".*
-			dokku mariadb:export "$db" > "$db"_"$rotate"."$W"."$DATE".sql
-			gzip -f "$db"_"$rotate"."$W"."$DATE".sql
+			dokku mariadb:export "$db" > "$db"_"$rotate"."$date_weekno"."$datetimestamp".sql
+			gzip -f "$db"_"$rotate"."$date_weekno"."$datetimestamp".sql
 			;;
 		"daily")
-			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/*."$DOW".sql.*
-			dokku mariadb:export "$db" > "$db"_"$DATE"."$DOW".sql
-			gzip -f "$db"_"$DATE"."$DOW".sql
+			rm -fv "$BACKUP_DIR"/"$rotate"/"$db"/*."$date_day_of_week".sql.*
+			dokku mariadb:export "$db" > "$db"_"$datetimestamp"."$date_day_of_week".sql
+			gzip -f "$db"_"$datetimestamp"."$date_day_of_week".sql
 			;;
 		esac
 		popd
@@ -120,10 +120,10 @@ main() {
 	plugin_list=$(dokku plugin:list)
 
 	# Monthly Backup
-	if [ "$DOM" = "$DOMONTHLY" ]; then
+	if [ "$date_day_of_month" = "$do_monthly" ]; then
 		backup "monthly"
 	# Weekly Backup
-	elif [ "$DNOW" = "$DOWEEKLY" ]; then
+	elif [ "$date_dayno_of_week" = "$do_weekly" ]; then
 		backup "weekly"
 	# Daily Backup
 	else
