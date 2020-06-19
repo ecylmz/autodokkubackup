@@ -109,7 +109,7 @@ backup() {
 	fi
 
 	if has_plugin "mariadb"; then
-		$backup_dir/mariadb/{daily,weekly,monthly}
+		mkdir -p $backup_dir/mariadb/{daily,weekly,monthly}
 		mariadb_backup "$1"
 	fi
 }
