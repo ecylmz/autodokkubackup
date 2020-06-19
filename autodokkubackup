@@ -127,6 +127,8 @@ main() {
 	else
 		backup "daily"
 	fi
+
+	chmod 750 ${backup_dir}
 }
 
 main "$@"
